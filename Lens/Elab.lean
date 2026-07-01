@@ -21,12 +21,9 @@ elab "makeLenses" structIdent:ident : command => do
     let fieldNameIdent := mkIdent field.fieldName
     let some decl := env.find? (field.projFn)
       | throwErrorAt structIdent s!"Could not find project function {field.projFn}"
-    let (some fieldTypeName, some fieldTypeArgs) := (← liftTermElabM (liftMetaM (
-             forallTelescope decl.type fun _ body
-               => pure (body.getAppFn.constName?, body.getAppArgs.mapM (·.constName?)))))
-      | throwErrorAt structIdent "Not a structure name"
-    let d ← fieldTypeArgs.mapM fun argName => `($(mkIdent argName))
-    let fieldTypeNameIdent := Syntax.mkCApp fieldTypeName d
+    let fieldTypeNameIdent : Term ← liftTermElabM <| liftMetaM <|
+      forallTelescope decl.type fun _ body =>
+        Lean.PrettyPrinter.delab body
     let lensName := mkIdent field.fieldName
     let newVal := mkIdent <| Name.mkSimple "newVal"
     let l ←
